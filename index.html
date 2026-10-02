@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sudoku Solver</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .app {
+        text-align: center;
+        max-width: 600px;
+        width: 100%;
+      }
+
+      h1 {
+        color: white;
+        font-size: 2.5rem;
+        margin-bottom: 8px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .subtitle {
+        color: rgba(255, 255, 255, 0.85);
+        margin-bottom: 24px;
+        font-size: 1rem;
+      }
+
+      .board-container {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 24px;
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: repeat(9, 1fr);
+        gap: 0;
+        background: #2c3e50;
+        padding: 2px;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      }
+
+      .cell {
+        width: 52px;
+        height: 52px;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        border-right: 1px solid #bdc3c7;
+        border-bottom: 1px solid #bdc3c7;
+      }
+
+      .cell-border-right {
+        border-right: 3px solid #2c3e50 !important;
+      }
+
+      .cell-border-bottom {
+        border-bottom: 3px solid #2c3e50 !important;
+      }
+
+      .cell input {
+        width: 100%;
+        height: 100%;
+        border: none;
+        text-align: center;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2c3e50;
+        background: transparent;
+        outline: none;
+        caret-color: #667eea;
+        cursor: pointer;
+      }
+
+      .cell input:focus {
+        background: #e8f4fd;
+      }
+
+      .cell-original input {
+        color: #1a252f;
+        font-weight: 700;
+        background: #f0f4f8;
+      }
+
+      .cell-user input {
+        color: #2980b9;
+        font-weight: 600;
+        background: #eaf2f8;
+      }
+
+      .cell-conflict input {
+        color: #e74c3c;
+        background: #fde8e8;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+
+      .cell-solved input {
+        color: #27ae60;
+        font-weight: 700;
+        background: #e8f8f0;
+      }
+
+      .controls {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      .btn {
+        padding: 12px 32px;
+        font-size: 1rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      .btn:active {
+        transform: translateY(0);
+      }
+
+      .btn-solve {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      .btn-solve:hover {
+        background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+      }
+
+      .btn-clear {
+        background: #95a5a6;
+        color: white;
+      }
+
+      .btn-clear:hover {
+        background: #7f8c8d;
+      }
+
+      .btn-example {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+      }
+
+      .btn-example:hover {
+        background: linear-gradient(135deg, #e083eb 0%, #e5475c 100%);
+      }
+
+      .legend {
+        display: flex;
+        justify-content: center;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.85rem;
+      }
+
+      .legend-color {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        display: inline-block;
+      }
+
+      .legend-original {
+        background: #f0f4f8;
+        border: 1px solid #bdc3c7;
+      }
+
+      .legend-user {
+        background: #eaf2f8;
+        border: 1px solid #2980b9;
+      }
+
+      .legend-conflict {
+        background: #fde8e8;
+        border: 1px solid #e74c3c;
+      }
+
+      .legend-solved {
+        background: #e8f8f0;
+        border: 1px solid #27ae60;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+
+      @media (max-width: 500px) {
+        .cell {
+          width: 38px;
+          height: 38px;
+        }
+
+        .cell input {
+          font-size: 1.2rem;
+        }
+
+        h1 {
+          font-size: 1.8rem;
+        }
+
+        .btn {
+          padding: 10px 20px;
+          font-size: 0.85rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <h1>Sudoku Solver</h1>
+      <p class="subtitle">
+        Enter numbers (1-9) and click "Solve" to solve the puzzle
+      </p>
+      <div class="board-container">
+        <div class="board" id="board"></div>
+      </div>
+      <div class="controls">
+        <button class="btn btn-solve" onclick="solveSudoku()">Solve</button>
+        <button class="btn btn-clear" onclick="clearBoard()">Clear</button>
+        <button class="btn btn-example" onclick="loadExample()">
+          Load Example
+        </button>
+      </div>
+      <div class="legend">
+        <span class="legend-item"
+          ><span class="legend-color legend-original"></span> Given</span
+        >
+        <span class="legend-item"
+          ><span class="legend-color legend-user"></span> Your Entry</span
+        >
+        <span class="legend-item"
+          ><span class="legend-color legend-conflict"></span> Conflict</span
+        >
+        <span class="legend-item"
+          ><span class="legend-color legend-solved"></span> Solved</span
+        >
+      </div>
+    </div>
+
+    <script>
+      let board = Array(9)
+        .fill(null)
+        .map(() => Array(9).fill(0));
+      let originalCells = Array(9)
+        .fill(null)
+        .map(() => Array(9).fill(false));
+      let userCells = Array(9)
+        .fill(null)
+        .map(() => Array(9).fill(false));
+      let isSolved = false;
+
+      function createBoard() {
+        const boardEl = document.getElementById("board");
+        boardEl.innerHTML = "";
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            if (c === 2 || c === 5 || c === 8)
+              cell.classList.add("cell-border-right");
+            if (r === 2 || r === 5 || r === 8)
+              cell.classList.add("cell-border-bottom");
+
+            const input = document.createElement("input");
+            input.type = "text";
+            input.inputMode = "numeric";
+            input.maxLength = 1;
+            input.dataset.row = r;
+            input.dataset.col = c;
+
+            if (originalCells[r][c]) {
+              cell.classList.add("cell-original");
+              input.value = board[r][c] || "";
+              input.readOnly = true;
+            } else if (userCells[r][c]) {
+              cell.classList.add("cell-user");
+              input.value = board[r][c] || "";
+              input.readOnly = isSolved;
+            } else {
+              input.value = board[r][c] || "";
+              input.readOnly = isSolved;
+            }
+
+            input.addEventListener("input", handleInput);
+            input.addEventListener("focus", () => input.select());
+            cell.appendChild(input);
+            boardEl.appendChild(cell);
+          }
+        }
+        updateConflicts();
+      }
+
+      function handleInput(e) {
+        if (isSolved) return;
+        const r = parseInt(e.target.dataset.row);
+        const c = parseInt(e.target.dataset.col);
+        const val = e.target.value;
+
+        if (val === "" || (val >= "1" && val <= "9")) {
+          board[r][c] = val === "" ? 0 : parseInt(val, 10);
+          if (val !== "") {
+            userCells[r][c] = true;
+          }
+          updateConflicts();
+          refreshCellStyles();
+        } else {
+          e.target.value = board[r][c] || "";
+        }
+      }
+
+      function isValidPlacement(b, row, col, num) {
+        for (let i = 0; i < 9; i++) {
+          if (i !== col && b[row][i] === num) return false;
+          if (i !== row && b[i][col] === num) return false;
+        }
+        const boxRow = Math.floor(row / 3) * 3;
+        const boxCol = Math.floor(col / 3) * 3;
+        for (let r = boxRow; r < boxRow + 3; r++) {
+          for (let c = boxCol; c < boxCol + 3; c++) {
+            if ((r !== row || c !== col) && b[r][c] === num) return false;
+          }
+        }
+        return true;
+      }
+
+      function getConflicts() {
+        const conflicts = new Set();
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            const val = board[r][c];
+            if (val !== 0) {
+              board[r][c] = 0;
+              if (!isValidPlacement(board, r, c, val)) {
+                for (let i = 0; i < 9; i++) {
+                  if (board[r][i] === val) conflicts.add(`${r},${i}`);
+                  if (board[i][c] === val) conflicts.add(`${i},${c}`);
+                }
+                const boxRow = Math.floor(r / 3) * 3;
+                const boxCol = Math.floor(c / 3) * 3;
+                for (let br = boxRow; br < boxRow + 3; br++) {
+                  for (let bc = boxCol; bc < boxCol + 3; bc++) {
+                    if (board[br][bc] === val) conflicts.add(`${br},${bc}`);
+                  }
+                }
+              }
+              board[r][c] = val;
+            }
+          }
+        }
+        return conflicts;
+      }
+
+      function updateConflicts() {
+        const conflicts = getConflicts();
+        const inputs = document.querySelectorAll(".cell input");
+        inputs.forEach((input) => {
+          const r = parseInt(input.dataset.row);
+          const c = parseInt(input.dataset.col);
+          const key = `${r},${c}`;
+          const cell = input.parentElement;
+
+          cell.classList.remove("cell-conflict");
+          if (conflicts.has(key) && board[r][c] !== 0) {
+            cell.classList.add("cell-conflict");
+          }
+        });
+      }
+
+      function refreshCellStyles() {
+        const inputs = document.querySelectorAll(".cell input");
+        inputs.forEach((input) => {
+          const r = parseInt(input.dataset.row);
+          const c = parseInt(input.dataset.col);
+          const cell = input.parentElement;
+
+          cell.classList.remove("cell-user");
+          if (userCells[r][c] && board[r][c] !== 0) {
+            cell.classList.add("cell-user");
+          }
+        });
+      }
+
+      function solveHelper(b) {
+        for (let r = 0; r < 9; r++) {
+          for (let c = 0; c < 9; c++) {
+            if (b[r][c] === 0) {
+              for (let num = 1; num <= 9; num++) {
+                if (isValidPlacement(b, r, c, num)) {
+                  b[r][c] = num;
+                  if (solveHelper(b)) return true;
+                  b[r][c] = 0;
+                }
+              }
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+
+      function solveSudoku() {
+        const testBoard = board.map((row) => [...row]);
+        if (!solveHelper(testBoard)) {
+          alert(
+            "No solution exists for the current puzzle. Check for conflicts first.",
+          );
+          return;
+        }
+        isSolved = true;
+        board = testBoard;
+        createBoard();
+        const inputs = document.querySelectorAll(".cell input");
+        inputs.forEach((input) => {
+          const r = parseInt(input.dataset.row);
+          const c = parseInt(input.dataset.col);
+          if (userCells[r][c]) {
+            input.parentElement.classList.add("cell-user");
+          } else {
+            input.parentElement.classList.add("cell-solved");
+          }
+        });
+      }
+
+      function clearBoard() {
+        board = Array(9)
+          .fill(null)
+          .map(() => Array(9).fill(0));
+        originalCells = Array(9)
+          .fill(null)
+          .map(() => Array(9).fill(false));
+        userCells = Array(9)
+          .fill(null)
+          .map(() => Array(9).fill(false));
+        isSolved = false;
+        createBoard();
+      }
+
+      function loadExample() {
+        const example = [
+          [5, 3, 0, 0, 7, 0, 0, 0, 0],
+          [6, 0, 0, 1, 9, 5, 0, 0, 0],
+          [0, 9, 8, 0, 0, 0, 0, 6, 0],
+          [8, 0, 0, 0, 6, 0, 0, 0, 3],
+          [4, 0, 0, 8, 0, 3, 0, 0, 1],
+          [7, 0, 0, 0, 2, 0, 0, 0, 6],
+          [0, 6, 0, 0, 0, 0, 2, 8, 0],
+          [0, 0, 0, 4, 1, 9, 0, 0, 5],
+          [0, 0, 0, 0, 8, 0, 0, 7, 9],
+        ];
+        board = example.map((row) => [...row]);
+        originalCells = example.map((row) => row.map((val) => val !== 0));
+        isSolved = false;
+        createBoard();
+      }
+
+      createBoard();
+    </script>
+  </body>
+</html>
